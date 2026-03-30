@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XFC - Arena Sorteio Online</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            color: white; 
+            background: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.95)), url('XFC.jpeg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(20, 20, 20, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+        [x-cloak] { display: none !important; }
+        .pos-GOL { background: #ef4444; } 
+        .pos-ZAG { background: #3b82f6; }
+        .pos-MEI { background: #fbbf24; color: black; }
+        .pos-ATA { background: #f97316; }
+        .animate-list { animation: slideIn 0.3s ease-out forwards; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body x-data="sorteioApp()" x-init="init()">
+
+    <header class="bg-yellow-500 p-4 sticky top-0 z-50 shadow-xl">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="font-extrabold italic text-xl tracking-tighter uppercase text-black">XFC ARENA</h1>
+            <div class="flex gap-2 items-center">
+                <span class="text-[10px] bg-black/20 px-2 py-1 rounded font-bold text-black" x-text="jogadores.length + ' JOGADORES'"></span>
+                <button @click="limparTudo()" class="text-[10px] bg-black text-white px-2 py-1 rounded font-bold uppercase hover:bg-zinc-800 transition-colors">Zerar Lista</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto p-4 space-y-6">
+        
+        <div x-show="etapa === 'cadastro'" class="space-y-6">
+            <button @click="showModalCadastro = true" class="w-full bg-yellow-500 text-black py-6 rounded-2xl font-black text-2xl shadow-lg active:scale-95 transition-all">
+                ⚽ ENTRAR NA LISTA
+            </button>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <template x-for="jogador in jogadores" :key="jogador.id">
+                    <div class="glass-card p-4 rounded-2xl flex justify-between items-center animate-list border-l-4 border-yellow-500">
+                        <div class="flex items-center gap-4">
+                            <div :class="'w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs pos-' + jogador.posicao" x-text="jogador.posicao"></div>
+                            <div>
+                                <div class="font-bold text-base uppercase text-yellow-500" x-text="jogador.nome"></div>
+                                <div class="text-[10px] text-slate-400 font-bold uppercase" x-text="jogador.tipo"></div>
+                            </div>
+                        </div>
+                        <span x-show="jogador.tipo === 'mensalista'" class="text-yellow-500 text-xl">⭐</span>
+                    </div>
+                </template>
+            </div>
+
+            <button x-show="jogadores.length >= 2" @click="sortearTimes()" class="w-full bg-white text-black py-4 rounded-2xl font-black text-xl hover:bg-yellow-400 transition-all uppercase">
+                SORTEAR TIMES ⚡
+            </button>
+        </div>
+
+        <div x-show="etapa === 'resultado'" class="space-y-6" x-cloak>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <template x-for="(time, index) in timesGerados">
+                    <div class="glass-card rounded-3xl overflow-hidden border-2 border-yellow-500/30">
+                        <div class="bg-yellow-500 p-3 font-black italic text-center uppercase text-black" x-text="'Time ' + (index + 1)"></div>
+                        <div class="p-4 space-y-2">
+                            <template x-for="jogador in time">
+                                <div class="bg-white/5 p-3 rounded-xl flex justify-between items-center border border-white/5">
+                                    <span class="font-bold uppercase text-white" x-text="jogador.nome"></span>
+                                    <span class="text-[10px] text-yellow-500 font-bold" x-text="jogador.posicao"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <button @click="limparTudo()" class="w-full bg-zinc-800 py-4 rounded-2xl font-bold uppercase text-yellow-500">Voltar e Zerar Tudo</button>
+        </div>
+    </main>
+
+    <div x-show="showModalCadastro" class="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-4 backdrop-blur-sm" x-cloak>
+        <div class="glass-card p-8 rounded-3xl w-full max-w-sm space-y-5">
+            <h3 class="font-black text-2xl text-yellow-500 text-center uppercase">Cadastro XFC</h3>
+            <div class="space-y-4">
+                <input x-model="novoJogador.nome" type="text" placeholder="Seu Nome" class="w-full bg-black p-4 rounded-xl border border-yellow-500/30 text-white uppercase">
+                <div class="grid grid-cols-2 gap-2">
+                    <select x-model="novoJogador.posicao" class="w-full bg-black p-4 rounded-xl text-white border border-yellow-500/30">
+                        <option value="GOL">Goleiro</option>
+                        <option value="ZAG">Zagueiro</option>
+                        <option value="MEI">Meio-Campo</option>
+                        <option value="ATA">Atacante</option>
+                    </select>
+                    <select x-model="novoJogador.nivel" class="w-full bg-black p-4 rounded-xl text-white border border-yellow-500/30">
+                        <option value="1">Nível 1</option>
+                        <option value="2">Nível 2</option>
+                        <option value="3">Nível 3</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button @click="novoJogador.tipo = 'mensalista'" :class="novoJogador.tipo === 'mensalista' ? 'bg-yellow-500 text-black' : 'bg-zinc-900 text-white'" class="py-3 rounded-xl text-[10px] font-bold uppercase">Mensalista</button>
+                    <button @click="novoJogador.tipo = 'visitante'" :class="novoJogador.tipo === 'visitante' ? 'bg-yellow-500 text-black' : 'bg-zinc-900 text-white'" class="py-3 rounded-xl text-[10px] font-bold uppercase">Visitante</button>
+                </div>
+            </div>
+            <button @click="adicionarJogador()" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-black">SALVAR NA LISTA</button>
+            <button @click="showModalCadastro = false" class="w-full text-zinc-500 text-xs uppercase">Cancelar</button>
+        </div>
+    </div>
+
+    <div x-show="showModalPagamento" class="fixed inset-0 bg-black/98 z-[70] flex items-center justify-center p-4" x-cloak>
+        <div class="glass-card p-6 rounded-3xl w-full max-w-sm text-center space-y-6 border border-yellow-500">
+            <div class="bg-white p-3 inline-block rounded-2xl mx-auto">
+                <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(codigoPix)" class="w-44 h-44">
+            </div>
+            <h3 class="text-xl font-black text-yellow-500 uppercase">Pagamento Visitante</h3>
+            <p class="text-white text-3xl font-black">R$ 15,00</p>
+            <button @click="navigator.clipboard.writeText(codigoPix); alert('Copiado!')" class="w-full bg-yellow-500 text-black py-3 rounded-xl font-bold uppercase">Copiar PIX</button>
+            <button @click="showModalPagamento = false" class="w-full bg-white text-black py-4 rounded-xl font-black">FECHAR</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://api.npoint.io/477dc1847b453524115e";
+
+        function sorteioApp() {
+            return {
+                etapa: 'cadastro',
+                showModalCadastro: false,
+                showModalPagamento: false,
+                jogadores: [],
+                timesGerados: [],
+                codigoPix: "00020101021126360014br.gov.bcb.pix011442180353000160520400005303986540515.005802BR5920ALMEIDA REPRESENTACO6009SAO PAULO62070503***630428BB",
+                novoJogador: { nome: '', nivel: 2, posicao: 'MEI', tipo: 'mensalista' },
+
+                async init() {
+                    await this.syncData();
+                    setInterval(() => this.syncData(), 3000); 
+                },
+
+                async syncData() {
+                    try {
+                        const res = await fetch(API_URL);
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        
+                        this.jogadores = data.lista || [];
+                        if (data.times && data.times.length > 0) {
+                            this.timesGerados = data.times;
+                            this.etapa = 'resultado';
+                        } else {
+                            this.etapa = 'cadastro';
+                            this.timesGerados = [];
+                        }
+                    } catch (e) { console.log("Erro de conexão."); }
+                },
+
+                async updateServer(lista, times) {
+                    try {
+                        const res = await fetch(API_URL, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ lista, times })
+                        });
+                        if (res.ok) {
+                            this.jogadores = lista;
+                            this.timesGerados = times;
+                        }
+                    } catch (e) { alert("Erro ao salvar no servidor."); }
+                },
+
+                async adicionarJogador() {
+                    if (!this.novoJogador.nome.trim()) return alert("Digite seu nome!");
+                    const novo = { 
+                        id: Date.now(), 
+                        nome: this.novoJogador.nome.toUpperCase(),
+                        nivel: parseInt(this.novoJogador.nivel),
+                        posicao: this.novoJogador.posicao,
+                        tipo: this.novoJogador.tipo
+                    };
+                    const novaLista = [...this.jogadores, novo];
+                    await this.updateServer(novaLista, []);
+                    this.showModalCadastro = false;
+                    if (this.novoJogador.tipo === 'visitante') this.showModalPagamento = true;
+                    this.novoJogador.nome = '';
+                },
+
+                async sortearTimes() {
+                    let lista = [...this.jogadores].sort(() => Math.random() - 0.5);
+                    lista.sort((a, b) => b.nivel - a.nivel);
+                    const t1 = [], t2 = [];
+                    lista.forEach((j, i) => { if (i % 2 === 0) t1.push(j); else t2.push(j); });
+                    await this.updateServer(this.jogadores, [t1, t2]);
+                    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                },
+
+                async limparTudo() {
+                    if(confirm("Zerar para todos?")) {
+                        await this.updateServer([], []);
+                        this.etapa = 'cadastro';
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
